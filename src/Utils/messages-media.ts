@@ -62,7 +62,7 @@ const getImageProcessingLibrary = async () => {
     return { sharp };
   }
 
-  const jimp = (_jimp?.default ?? _jimp) as unknown as { read: Function, MIME_JPEG: string, RESIZE_BILINEAR: number };
+  const jimp = (_jimp && _jimp.default ? _jimp.default : _jimp) as { read: Function, MIME_JPEG: string, RESIZE_BILINEAR: number };
   if (jimp) {
     return { jimp };
   }
