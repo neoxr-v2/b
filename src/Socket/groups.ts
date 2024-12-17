@@ -43,7 +43,7 @@ export const makeGroupsSocket = (config: SocketConfig) => {
         { tag: "query", attrs: { request: "interactive" } },
       ]);
       return extractGroupMetadata(result);
-    } catch { }
+    } catch {}
   };
 
   const groupFetchAllParticipating = async () => {
