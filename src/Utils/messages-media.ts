@@ -117,15 +117,24 @@ const extractVideoThumb = async (
 
 export const extractImageThumb = async (
   bufferOrFilePath: Readable | Buffer | string,
-  width = 32,
-) => {
+  width = 32
+): Promise<{
+  buffer: Buffer;
+  original: {
+    width: number | undefined;
+    height: number | undefined;
+  };
+}> => {
+  // Jika `bufferOrFilePath` adalah Readable Stream, ubah ke Buffer
   if (bufferOrFilePath instanceof Readable) {
     bufferOrFilePath = await toBuffer(bufferOrFilePath);
   }
 
   const lib = await getImageProcessingLibrary();
-  if ("sharp" in lib && typeof lib.sharp?.default === "function") {
-    const img = lib.sharp!.default(bufferOrFilePath);
+
+  // Jika menggunakan sharp
+  if (lib.sharp) {
+    const img = lib.sharp(bufferOrFilePath); // Tidak ada `.default` pada `sharp`
     const dimensions = await img.metadata();
 
     const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer();
@@ -136,7 +145,10 @@ export const extractImageThumb = async (
         height: dimensions.height,
       },
     };
-  } else if ("jimp" in lib && typeof lib.jimp?.read === "function") {
+  }
+
+  // Jika menggunakan jimp
+  if (lib.jimp) {
     const { read, MIME_JPEG, RESIZE_BILINEAR, AUTO } = lib.jimp;
 
     const jimp = await read(bufferOrFilePath as any);
@@ -144,17 +156,20 @@ export const extractImageThumb = async (
       width: jimp.getWidth(),
       height: jimp.getHeight(),
     };
+
     const buffer = await jimp
       .quality(50)
       .resize(width, AUTO, RESIZE_BILINEAR)
       .getBufferAsync(MIME_JPEG);
+
     return {
       buffer,
       original: dimensions,
     };
-  } else {
-    throw new Boom("No image processing library available");
   }
+
+  // Jika tidak ada library yang tersedia
+  throw new Boom("No image processing library available");
 };
 
 export const encodeBase64EncodedStringForUpload = (b64: string) =>
