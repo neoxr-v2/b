@@ -8,7 +8,7 @@
     "checkJs": false,
     "outDir": "lib",
     "strict": false,
-    "strictNullChecks": true,
+    "strictNullChecks": false,
     "skipLibCheck": true,
     "noImplicitThis": true,
     "esModuleInterop": true,
