@@ -43,7 +43,8 @@ import {
 } from "../WABinary";
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from "./crypto";
 import { generateMessageID } from "./generics";
-import type { Jimp, JimpConstructors } from "jimp";
+import pkg from "jimp";
+const { Jimp, JimpConstructors } = pkg
 type ImageProcessingLibrary = {
   sharp?: typeof import("sharp");
   jimp?: JimpConstructors & {
