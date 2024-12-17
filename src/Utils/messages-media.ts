@@ -151,8 +151,8 @@ const extractVideoThumb = async (
     const lib = await getImageProcessingLibrary();
     
     if ("sharp" in lib) {
-      // Ensure sharp is used correctly without accessing default
-      const img = lib.sharp(bufferOrFilePath);
+      const sharp = lib.sharp.default || lib.sharp;  // Handle both default export and direct access
+      const img = sharp(bufferOrFilePath);  // Call sharp directly
       const dimensions = await img.metadata();
   
       const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer();
