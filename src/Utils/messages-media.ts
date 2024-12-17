@@ -174,16 +174,18 @@ export const generateProfilePicture = async (mediaUpload: WAMediaUpload) => {
 
   const lib = await getImageProcessingLibrary();
   let img: Promise<Buffer>;
-  if ("sharp" in lib && typeof lib.sharp?.default === "function") {
+
+  if ("sharp" in lib && typeof lib.sharp === "function") {
+    // Gunakan sharp tanpa .default
     img = lib
-      .sharp!.default(bufferOrFilePath)
+      .sharp!(bufferOrFilePath)
       .resize(640, 640)
       .jpeg({
         quality: 50,
       })
       .toBuffer();
-  } else if ("jimp" in lib && typeof lib.jimp?.read === "function") {
-    const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp;
+  } else if ("jimp" in lib && typeof (lib.jimp as typeof import("jimp")).read === "function") {
+    const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp as typeof import("jimp");
     const jimp = await read(bufferOrFilePath as any);
     const min = Math.min(jimp.getWidth(), jimp.getHeight());
     const cropped = jimp.crop(0, 0, min, min);
