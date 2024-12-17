@@ -177,7 +177,7 @@ export default (config: BaileysInMemoryStoreConfig) => {
             Object.keys(contacts).map(async (contactId) => {
               if (contactId) {
                 let { user } = jidDecode(contactId)!;
-                if (!user) user = {}
+                if (!user) user = ''
                 return [
                   contactId,
                   (await md5(Buffer.from(user + "WA_ADD_NOTIF", "utf8")))
