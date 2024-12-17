@@ -43,6 +43,7 @@ import {
 } from "../WABinary";
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from "./crypto";
 import { generateMessageID } from "./generics";
+import * as Jimp from 'jimp';
 
 const getTmpFilesDirectory = () => tmpdir();
 
