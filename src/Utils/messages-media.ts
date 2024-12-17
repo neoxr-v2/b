@@ -62,7 +62,7 @@ const getImageProcessingLibrary = async () => {
     return { sharp };
   }
 
-  const jimp = (_jimp as { default: JimpConstructors })?.default || _jimp;
+  const jimp = (_jimp as { default: (input: any) => any })?.default || _jimp;
   if (jimp) {
     return { jimp };
   }
