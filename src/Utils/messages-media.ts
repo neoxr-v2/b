@@ -43,7 +43,6 @@ import {
 } from "../WABinary";
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from "./crypto";
 import { generateMessageID } from "./generics";
-import * as Jimp from 'jimp';
 
 const getTmpFilesDirectory = () => tmpdir();
 
@@ -52,39 +51,47 @@ const getImageProcessingLibrary = async () => {
     (async () => {
       try {
         const jimp = await import("jimp");
+        console.log("Jimp imported:", jimp); // Debugging log
         return jimp;
       } catch (error) {
+        console.error("Failed to import Jimp:", error);
         return undefined;
       }
     })(),
     (async () => {
       try {
         const sharp = await import("sharp");
+        console.log("Sharp imported:", sharp); // Debugging log
         return sharp;
       } catch (error) {
+        console.error("Failed to import Sharp:", error);
         return undefined;
       }
     })(),
   ]);
 
   if (sharp) {
+    console.log("Using Sharp.");
     return { sharp };
   }
 
   if (_jimp) {
-    // If jimp is available, handle the default export properly
+    console.log("Using Jimp.");
+    // Check if _jimp.default exists, or directly use _jimp
     const jimp = (_jimp.default ? _jimp.default : _jimp) as { 
       read: Function; 
       MIME_JPEG: string; 
-      RESIZE_BILINEAR: string; // Keep RESIZE_BILINEAR as string as defined by Jimp
+      RESIZE_BILINEAR: string; // Keep RESIZE_BILINEAR as string for Jimp
     };
 
     const { read, MIME_JPEG, RESIZE_BILINEAR } = jimp;
     return { jimp };
   }
 
+  console.error("No image processing library found.");
   throw new Boom("No image processing library available");
 };
+
 
 
 export const hkdfInfoKey = (type: MediaType) => {
