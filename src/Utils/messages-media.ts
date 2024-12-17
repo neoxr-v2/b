@@ -43,16 +43,11 @@ import {
 } from "../WABinary";
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from "./crypto";
 import { generateMessageID } from "./generics";
-import pkg from "jimp";
-const { Jimp, JimpConstructors } = pkg
+import Jimp = require("jimp");
+
 type ImageProcessingLibrary = {
   sharp?: typeof import("sharp");
-  jimp?: JimpConstructors & {
-    read: (path: string | Buffer) => Promise<Jimp>;
-    MIME_JPEG: string;
-    RESIZE_BILINEAR: string;
-    AUTO: number;
-  };
+  jimp?: typeof Jimp;
 };
 const getTmpFilesDirectory = () => tmpdir();
 
