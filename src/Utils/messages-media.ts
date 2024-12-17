@@ -147,7 +147,7 @@ export const extractImageThumb = async (
     };
     const buffer = await jimp
       .quality(50)
-      .resize(width, AUTO, RESIZE_BILINEAR)
+      .resize(width, jimp.AUTO, RESIZE_BILINEAR)
       .getBufferAsync(MIME_JPEG);
     return {
       buffer,
