@@ -113,17 +113,23 @@ const extractVideoThumb = async (
 
 export const extractImageThumb = async (
   bufferOrFilePath: Readable | Buffer | string,
-  width = 32,
-) => {
+  width = 32
+): Promise<{
+  buffer: Buffer;
+  original: {
+    width: number | undefined;
+    height: number | undefined;
+  };
+}> => {
   if (bufferOrFilePath instanceof Readable) {
-    bufferOrFilePath = await toBuffer(bufferOrFilePath); // Assume `toBuffer` is implemented elsewhere
+    bufferOrFilePath = await toBuffer(bufferOrFilePath);
   }
 
   const lib = await getImageProcessingLibrary();
 
-  // Check if the sharp library is available
-  if ("sharp" in lib && typeof lib.sharp === "function") {
-    const img = lib.sharp(bufferOrFilePath); // Use sharp directly
+  // Jika menggunakan sharp
+  if (lib.sharp) {
+    const img = lib.sharp(bufferOrFilePath); // Tidak ada `.default` pada `sharp`
     const dimensions = await img.metadata();
 
     const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer();
@@ -135,26 +141,30 @@ export const extractImageThumb = async (
       },
     };
   }
-  // Check if the jimp library is available
-  else if ("jimp" in lib && typeof lib.jimp.read === "function") {
-    const Jimp = lib.jimp; // Assuming `jimp` is available here
 
-    const image = await Jimp.read(bufferOrFilePath);
+  // Jika menggunakan jimp
+  if (lib.jimp) {
+    const { read, MIME_JPEG, RESIZE_BILINEAR, AUTO } = lib.jimp;
+
+    const jimp = await read(bufferOrFilePath as any);
     const dimensions = {
-      width: image.getWidth(),
-      height: image.getHeight(),
+      width: jimp.getWidth(),
+      height: jimp.getHeight(),
     };
-    const buffer = await image
+
+    const buffer = await jimp
       .quality(50)
-      .resize(width) // Automatically resizing, `AUTO` is no longer needed
-      .getBufferAsync(Jimp.MIME_JPEG); // Correct MIME usage
+      .resize(width, AUTO, RESIZE_BILINEAR)
+      .getBufferAsync(MIME_JPEG);
+
     return {
       buffer,
       original: dimensions,
     };
-  } else {
-    throw new Boom("No image processing library available");
   }
+
+  // Jika tidak ada library yang tersedia
+  throw new Boom("No image processing library available");
 };
 
 export const encodeBase64EncodedStringForUpload = (b64: string) =>
