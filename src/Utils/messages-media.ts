@@ -139,48 +139,54 @@ const extractVideoThumb = async (
     });
   }) as Promise<void>;
 
-export const extractImageThumb = async (
-  bufferOrFilePath: Readable | Buffer | string,
-  width = 32,
-) => {
-  if (bufferOrFilePath instanceof Readable) {
-    bufferOrFilePath = await toBuffer(bufferOrFilePath);
-  }
-
-  const lib = await getImageProcessingLibrary();
-  if ("sharp" in lib && typeof lib.sharp?.default === "function") {
-    const img = lib.sharp!.default(bufferOrFilePath);
-    const dimensions = await img.metadata();
-
-    const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer();
-    return {
-      buffer,
-      original: {
-        width: dimensions.width,
-        height: dimensions.height,
-      },
-    };
-  } else if ("jimp" in lib && typeof lib.jimp === "object" && "default" in lib.jimp) {
-    const { default: jimpDefault } = lib.jimp as { default: { read: Function, MIME_JPEG: string, RESIZE_BILINEAR: number } };
-    const { read, MIME_JPEG, RESIZE_BILINEAR } = jimpDefault;
-
-    const jimp = await read(bufferOrFilePath as any);
-    const dimensions = {
-      width: jimp.getWidth(),
-      height: jimp.getHeight(),
-    };
-    const buffer = await jimp
-      .quality(50)
-      .resize(width, jimp.AUTO, RESIZE_BILINEAR)
-      .getBufferAsync(MIME_JPEG);
-    return {
-      buffer,
-      original: dimensions,
-    };
-  } else {
-    throw new Boom("No image processing library available");
-  }
-};
+  export const extractImageThumb = async (
+    bufferOrFilePath: Readable | Buffer | string,
+    width = 32,
+  ) => {
+    // If the input is a Readable stream, convert it to a Buffer
+    if (bufferOrFilePath instanceof Readable) {
+      bufferOrFilePath = await toBuffer(bufferOrFilePath);
+    }
+  
+    const lib = await getImageProcessingLibrary();
+    
+    if ("sharp" in lib) {
+      // Ensure sharp is used correctly without accessing default
+      const img = lib.sharp(bufferOrFilePath);
+      const dimensions = await img.metadata();
+  
+      const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer();
+      return {
+        buffer,
+        original: {
+          width: dimensions.width,
+          height: dimensions.height,
+        },
+      };
+    } else if ("jimp" in lib) {
+      // Handle jimp without using default, accessing it directly
+      const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp;
+      const jimp = await read(bufferOrFilePath as any);
+      
+      const dimensions = {
+        width: jimp.getWidth(),
+        height: jimp.getHeight(),
+      };
+  
+      const buffer = await jimp
+        .quality(50)
+        .resize(width, jimp.AUTO, RESIZE_BILINEAR)
+        .getBufferAsync(MIME_JPEG);
+  
+      return {
+        buffer,
+        original: dimensions,
+      };
+    } else {
+      throw new Boom("No image processing library available");
+    }
+  };
+  
 
 export const encodeBase64EncodedStringForUpload = (b64: string) =>
   encodeURIComponent(
