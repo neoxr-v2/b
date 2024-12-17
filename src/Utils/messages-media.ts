@@ -113,23 +113,15 @@ const extractVideoThumb = async (
 
 export const extractImageThumb = async (
   bufferOrFilePath: Readable | Buffer | string,
-  width = 32
-): Promise<{
-  buffer: Buffer;
-  original: {
-    width: number | undefined;
-    height: number | undefined;
-  };
-}> => {
+  width = 32,
+) => {
   if (bufferOrFilePath instanceof Readable) {
     bufferOrFilePath = await toBuffer(bufferOrFilePath);
   }
 
   const lib = await getImageProcessingLibrary();
-
-  // Jika menggunakan sharp
-  if (lib.sharp) {
-    const img = lib.sharp(bufferOrFilePath); // Tidak ada `.default` pada `sharp`
+  if ("sharp" in lib && typeof lib.sharp?.default === "function") {
+    const img = lib.sharp!.default(bufferOrFilePath);
     const dimensions = await img.metadata();
 
     const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer();
@@ -140,10 +132,7 @@ export const extractImageThumb = async (
         height: dimensions.height,
       },
     };
-  }
-
-  // Jika menggunakan jimp
-  if (lib.jimp) {
+  } else if ("jimp" in lib && typeof lib.jimp?.read === "function") {
     const { read, MIME_JPEG, RESIZE_BILINEAR, AUTO } = lib.jimp;
 
     const jimp = await read(bufferOrFilePath as any);
@@ -151,20 +140,61 @@ export const extractImageThumb = async (
       width: jimp.getWidth(),
       height: jimp.getHeight(),
     };
-
     const buffer = await jimp
       .quality(50)
       .resize(width, AUTO, RESIZE_BILINEAR)
       .getBufferAsync(MIME_JPEG);
-
     return {
       buffer,
       original: dimensions,
     };
+  } else {
+    throw new Boom("No image processing library available");
+  }
+};
+
+export const encodeBase64EncodedStringForUpload = (b64: string) =>
+  encodeURIComponent(
+    b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/\=+$/, ""),
+  );
+
+export const generateProfilePicture = async (mediaUpload: WAMediaUpload) => {
+  let bufferOrFilePath: Buffer | string;
+  if (Buffer.isBuffer(mediaUpload)) {
+    bufferOrFilePath = mediaUpload;
+  } else if ("url" in mediaUpload) {
+    bufferOrFilePath = mediaUpload.url.toString();
+  } else {
+    bufferOrFilePath = await toBuffer(mediaUpload.stream);
   }
 
-  // Jika tidak ada library yang tersedia
-  throw new Boom("No image processing library available");
+  const lib = await getImageProcessingLibrary();
+  let img: Promise<Buffer>;
+  if ("sharp" in lib && typeof lib.sharp?.default === "function") {
+    img = lib
+      .sharp!.default(bufferOrFilePath)
+      .resize(640, 640)
+      .jpeg({
+        quality: 50,
+      })
+      .toBuffer();
+  } else if ("jimp" in lib && typeof lib.jimp?.read === "function") {
+    const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp;
+    const jimp = await read(bufferOrFilePath as any);
+    const min = Math.min(jimp.getWidth(), jimp.getHeight());
+    const cropped = jimp.crop(0, 0, min, min);
+
+    img = cropped
+      .quality(50)
+      .resize(640, 640, RESIZE_BILINEAR)
+      .getBufferAsync(MIME_JPEG);
+  } else {
+    throw new Boom("No image processing library available");
+  }
+
+  return {
+    img: await img,
+  };
 };
 
 export const encodeBase64EncodedStringForUpload = (b64: string) =>
