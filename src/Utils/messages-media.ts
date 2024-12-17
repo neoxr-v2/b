@@ -43,31 +43,31 @@ import {
 } from "../WABinary";
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from "./crypto";
 import { generateMessageID } from "./generics";
-
+import type { Jimp, JimpConstructors } from "jimp";
+type ImageProcessingLibrary = {
+  sharp?: typeof import("sharp");
+  jimp?: JimpConstructors & {
+    read: (path: string | Buffer) => Promise<Jimp>;
+    MIME_JPEG: string;
+    RESIZE_BILINEAR: string;
+    AUTO: number;
+  };
+};
 const getTmpFilesDirectory = () => tmpdir();
 
-const getImageProcessingLibrary = async () => {
+const getImageProcessingLibrary = async (): Promise<ImageProcessingLibrary> => {
   const [_jimp, sharp] = await Promise.all([
-    (async (): Promise<typeof import("jimp") | undefined> => {
+    (async () => {
       const jimp = await import("jimp").catch(() => undefined);
-      return jimp;
+      return jimp as unknown as ImageProcessingLibrary["jimp"];
     })(),
-    (async (): Promise<typeof import("sharp") | undefined> => {
+    (async () => {
       const sharp = await import("sharp").catch(() => undefined);
       return sharp;
     })(),
   ]);
 
-  if (sharp) {
-    return { sharp };
-  }
-
-  const jimp = _jimp && "default" in _jimp ? _jimp.default : _jimp;
-  if (jimp) {
-    return { jimp };
-  }
-
-  throw new Boom("No image processing library available");
+  return { sharp, jimp: _jimp };
 };
 
 export const hkdfInfoKey = (type: MediaType) => {
@@ -125,7 +125,6 @@ export const extractImageThumb = async (
     height: number | undefined;
   };
 }> => {
-  // Jika `bufferOrFilePath` adalah Readable Stream, ubah ke Buffer
   if (bufferOrFilePath instanceof Readable) {
     bufferOrFilePath = await toBuffer(bufferOrFilePath);
   }
