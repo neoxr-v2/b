@@ -175,16 +175,13 @@ export default (config: BaileysInMemoryStoreConfig) => {
         } else {
           const contactHashes = await Promise.all(
             Object.keys(contacts).map(async (contactId) => {
-              if (contactId) {
-                let { user } = jidDecode(contactId)!;
-                if (!user) user = ''
-                return [
-                  contactId,
-                  (await md5(Buffer.from(user + "WA_ADD_NOTIF", "utf8")))
-                    .toString("base64")
-                    .slice(0, 3),
-                ];
-              }
+              const { user } = jidDecode(contactId)!;
+              return [
+                contactId,
+                (await md5(Buffer.from(user + "WA_ADD_NOTIF", "utf8")))
+                  .toString("base64")
+                  .slice(0, 3),
+              ];
             }),
           );
           contact =

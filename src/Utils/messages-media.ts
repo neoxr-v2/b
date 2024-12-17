@@ -43,27 +43,31 @@ import {
 } from "../WABinary";
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from "./crypto";
 import { generateMessageID } from "./generics";
-import Jimp = require("jimp");
 
-type ImageProcessingLibrary = {
-  sharp?: typeof import("sharp");
-  jimp?: typeof Jimp;
-};
 const getTmpFilesDirectory = () => tmpdir();
 
-const getImageProcessingLibrary = async (): Promise<ImageProcessingLibrary> => {
+const getImageProcessingLibrary = async () => {
   const [_jimp, sharp] = await Promise.all([
     (async () => {
-      const jimp = await import("jimp").catch(() => undefined);
-      return jimp as unknown as ImageProcessingLibrary["jimp"];
+      const jimp = await import("jimp").catch(() => {});
+      return jimp;
     })(),
     (async () => {
-      const sharp = await import("sharp").catch(() => undefined);
+      const sharp = await import("sharp").catch(() => {});
       return sharp;
     })(),
   ]);
 
-  return { sharp, jimp: _jimp };
+  if (sharp) {
+    return { sharp };
+  }
+
+  const jimp = _jimp?.default || _jimp;
+  if (jimp) {
+    return { jimp };
+  }
+
+  throw new Boom("No image processing library available");
 };
 
 export const hkdfInfoKey = (type: MediaType) => {
@@ -113,23 +117,15 @@ const extractVideoThumb = async (
 
 export const extractImageThumb = async (
   bufferOrFilePath: Readable | Buffer | string,
-  width = 32
-): Promise<{
-  buffer: Buffer;
-  original: {
-    width: number | undefined;
-    height: number | undefined;
-  };
-}> => {
+  width = 32,
+) => {
   if (bufferOrFilePath instanceof Readable) {
     bufferOrFilePath = await toBuffer(bufferOrFilePath);
   }
 
   const lib = await getImageProcessingLibrary();
-
-  // Jika menggunakan sharp
-  if (lib.sharp) {
-    const img = lib.sharp(bufferOrFilePath); // Tidak ada `.default` pada `sharp`
+  if ("sharp" in lib && typeof lib.sharp?.default === "function") {
+    const img = lib.sharp!.default(bufferOrFilePath);
     const dimensions = await img.metadata();
 
     const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer();
@@ -140,10 +136,7 @@ export const extractImageThumb = async (
         height: dimensions.height,
       },
     };
-  }
-
-  // Jika menggunakan jimp
-  if (lib.jimp) {
+  } else if ("jimp" in lib && typeof lib.jimp?.read === "function") {
     const { read, MIME_JPEG, RESIZE_BILINEAR, AUTO } = lib.jimp;
 
     const jimp = await read(bufferOrFilePath as any);
@@ -151,20 +144,17 @@ export const extractImageThumb = async (
       width: jimp.getWidth(),
       height: jimp.getHeight(),
     };
-
     const buffer = await jimp
       .quality(50)
       .resize(width, AUTO, RESIZE_BILINEAR)
       .getBufferAsync(MIME_JPEG);
-
     return {
       buffer,
       original: dimensions,
     };
+  } else {
+    throw new Boom("No image processing library available");
   }
-
-  // Jika tidak ada library yang tersedia
-  throw new Boom("No image processing library available");
 };
 
 export const encodeBase64EncodedStringForUpload = (b64: string) =>
@@ -184,18 +174,16 @@ export const generateProfilePicture = async (mediaUpload: WAMediaUpload) => {
 
   const lib = await getImageProcessingLibrary();
   let img: Promise<Buffer>;
-
-  if ("sharp" in lib && typeof lib.sharp === "function") {
-    // Gunakan sharp tanpa .default
+  if ("sharp" in lib && typeof lib.sharp?.default === "function") {
     img = lib
-      .sharp!(bufferOrFilePath)
+      .sharp!.default(bufferOrFilePath)
       .resize(640, 640)
       .jpeg({
         quality: 50,
       })
       .toBuffer();
-  } else if ("jimp" in lib && typeof (lib.jimp as typeof import("jimp")).read === "function") {
-    const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp as typeof import("jimp");
+  } else if ("jimp" in lib && typeof lib.jimp?.read === "function") {
+    const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp;
     const jimp = await read(bufferOrFilePath as any);
     const min = Math.min(jimp.getWidth(), jimp.getHeight());
     const cropped = jimp.crop(0, 0, min, min);
@@ -298,7 +286,7 @@ export async function getAudioWaveform(
 }
 
 export const toReadable = (buffer: Buffer) => {
-  const readable = new Readable({ read: () => { } });
+  const readable = new Readable({ read: () => {} });
   readable.push(buffer);
   readable.push(null);
   return readable;
@@ -464,7 +452,7 @@ export const encryptedStream = async (
 
   const mediaKey = Crypto.randomBytes(32);
   const { cipherKey, iv, macKey } = getMediaKeys(mediaKey, mediaType);
-  const encWriteStream = new Readable({ read: () => { } });
+  const encWriteStream = new Readable({ read: () => {} });
 
   let bodyPath: string | undefined;
   let writeStream: WriteStream | undefined;
