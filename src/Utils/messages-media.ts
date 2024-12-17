@@ -48,12 +48,12 @@ const getTmpFilesDirectory = () => tmpdir();
 
 const getImageProcessingLibrary = async () => {
   const [_jimp, sharp] = await Promise.all([
-    (async () => {
-      const jimp = await import("jimp").catch(() => {});
+    (async (): Promise<typeof import("jimp") | undefined> => {
+      const jimp = await import("jimp").catch(() => undefined);
       return jimp;
     })(),
-    (async () => {
-      const sharp = await import("sharp").catch(() => {});
+    (async (): Promise<typeof import("sharp") | undefined> => {
+      const sharp = await import("sharp").catch(() => undefined);
       return sharp;
     })(),
   ]);
@@ -62,7 +62,7 @@ const getImageProcessingLibrary = async () => {
     return { sharp };
   }
 
-  const jimp = _jimp?.default || _jimp;
+  const jimp = _jimp && "default" in _jimp ? _jimp.default : _jimp;
   if (jimp) {
     return { jimp };
   }
@@ -286,7 +286,7 @@ export async function getAudioWaveform(
 }
 
 export const toReadable = (buffer: Buffer) => {
-  const readable = new Readable({ read: () => {} });
+  const readable = new Readable({ read: () => { } });
   readable.push(buffer);
   readable.push(null);
   return readable;
@@ -452,7 +452,7 @@ export const encryptedStream = async (
 
   const mediaKey = Crypto.randomBytes(32);
   const { cipherKey, iv, macKey } = getMediaKeys(mediaKey, mediaType);
-  const encWriteStream = new Readable({ read: () => {} });
+  const encWriteStream = new Readable({ read: () => { } });
 
   let bodyPath: string | undefined;
   let writeStream: WriteStream | undefined;
