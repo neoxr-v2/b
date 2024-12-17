@@ -176,7 +176,7 @@ export default (config: BaileysInMemoryStoreConfig) => {
           const contactHashes = await Promise.all(
             Object.keys(contacts).map(async (contactId) => {
               if (contactId) {
-                const { user } = jidDecode(contactId)!;
+                let { user } = jidDecode(contactId)!;
                 if (!user) user = {}
                 return [
                   contactId,
