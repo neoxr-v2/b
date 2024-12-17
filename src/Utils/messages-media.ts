@@ -123,7 +123,7 @@ export const extractImageThumb = async (
 
   // Check if the sharp library is available
   if ("sharp" in lib && typeof lib.sharp === "function") {
-    const img = sharp(bufferOrFilePath); // Use sharp directly
+    const img = lib.sharp(bufferOrFilePath); // Use sharp directly
     const dimensions = await img.metadata();
 
     const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer();
