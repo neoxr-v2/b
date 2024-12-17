@@ -38,10 +38,12 @@ export const makeGroupsSocket = (config: SocketConfig) => {
     });
 
   const groupMetadata = async (jid: string) => {
-    const result = await groupQuery(jid, "get", [
-      { tag: "query", attrs: { request: "interactive" } },
-    ]);
-    return extractGroupMetadata(result);
+    try {
+      const result = await groupQuery(jid, "get", [
+        { tag: "query", attrs: { request: "interactive" } },
+      ]);
+      return extractGroupMetadata(result);
+    } catch { }
   };
 
   const groupFetchAllParticipating = async () => {
@@ -209,12 +211,12 @@ export const makeGroupsSocket = (config: SocketConfig) => {
           },
           content: description
             ? [
-                {
-                  tag: "body",
-                  attrs: {},
-                  content: Buffer.from(description, "utf-8"),
-                },
-              ]
+              {
+                tag: "body",
+                attrs: {},
+                content: Buffer.from(description, "utf-8"),
+              },
+            ]
             : undefined,
         },
       ]);
@@ -311,9 +313,9 @@ export const makeGroupsSocket = (config: SocketConfig) => {
     groupToggleEphemeral: async (jid: string, ephemeralExpiration: number) => {
       const content: BinaryNode = ephemeralExpiration
         ? {
-            tag: "ephemeral",
-            attrs: { expiration: ephemeralExpiration.toString() },
-          }
+          tag: "ephemeral",
+          attrs: { expiration: ephemeralExpiration.toString() },
+        }
         : { tag: "not_ephemeral", attrs: {} };
       await groupQuery(jid, "set", [content]);
     },

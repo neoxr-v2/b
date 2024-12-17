@@ -509,11 +509,11 @@ export const makeSocket = (config: SocketConfig) => {
       });
     }
 
-    end(
-      new Boom(msg || "Intentional Logout", {
-        statusCode: DisconnectReason.loggedOut,
-      }),
-    );
+    // end(
+    //   new Boom(msg || "Intentional Logout", {
+    //     statusCode: DisconnectReason.loggedOut,
+    //   }),
+    // );
   };
 
   const requestPairingCode = async (phoneNumber: string): Promise<string> => {

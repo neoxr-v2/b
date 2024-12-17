@@ -601,27 +601,23 @@ export const makeChatsSocket = (config: SocketConfig) => {
    * type = "preview" for a low res picture
    * type = "image for the high res picture"
    */
-  const profilePictureUrl = async (
-    jid: string,
-    type: "preview" | "image" = "preview",
-    timeoutMs?: number,
-  ) => {
-    jid = jidNormalizedUser(jid);
-    const result = await query(
-      {
-        tag: "iq",
-        attrs: {
-          to: jid,
-          type: "get",
-          xmlns: "w:profile:picture",
-        },
-        content: [{ tag: "picture", attrs: { type, query: "url" } }],
+  const profilePictureUrl = async (jid: string, type: 'preview' | 'image' = 'preview', timeoutMs?: number) => {
+    jid = jidNormalizedUser(jid)
+    const result = await query({
+      tag: 'iq',
+      attrs: {
+        target: jid,
+        to: S_WHATSAPP_NET,
+        type: 'get',
+        xmlns: 'w:profile:picture'
       },
-      timeoutMs,
-    );
-    const child = getBinaryNodeChild(result, "picture");
-    return child?.attrs?.url;
-  };
+      content: [
+        { tag: 'picture', attrs: { type, query: 'url' } }
+      ]
+    }, timeoutMs)
+    const child = getBinaryNodeChild(result, 'picture')
+    return child?.attrs?.url
+  }
 
   const sendPresenceUpdate = async (type: WAPresence, toJid?: string) => {
     const me = authState.creds.me!;
@@ -671,12 +667,12 @@ export const makeChatsSocket = (config: SocketConfig) => {
       },
       content: tcToken
         ? [
-            {
-              tag: "tctoken",
-              attrs: {},
-              content: tcToken,
-            },
-          ]
+          {
+            tag: "tctoken",
+            attrs: {},
+            content: tcToken,
+          },
+        ]
         : undefined,
     });
 
@@ -978,7 +974,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
       const historyMsg = getHistoryMsg(msg.message!);
       const shouldProcessHistoryMsg = historyMsg
         ? shouldSyncHistoryMessage(historyMsg) &&
-          PROCESSABLE_HISTORY_TYPES.includes(historyMsg.syncType!)
+        PROCESSABLE_HISTORY_TYPES.includes(historyMsg.syncType!)
         : false;
 
       if (historyMsg && !authState.creds.myAppStateKeyId) {
