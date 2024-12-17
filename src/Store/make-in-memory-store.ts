@@ -177,12 +177,14 @@ export default (config: BaileysInMemoryStoreConfig) => {
             Object.keys(contacts).map(async (contactId) => {
               if (contactId) {
                 const { user } = jidDecode(contactId)!;
-                return [
-                  contactId,
-                  (await md5(Buffer.from(user + "WA_ADD_NOTIF", "utf8")))
-                    .toString("base64")
-                    .slice(0, 3),
-                ];
+                if (user) {
+                  return [
+                    contactId,
+                    (await md5(Buffer.from(user + "WA_ADD_NOTIF", "utf8")))
+                      .toString("base64")
+                      .slice(0, 3),
+                  ];
+                }
               }
             }),
           );
