@@ -62,7 +62,7 @@ const getImageProcessingLibrary = async () => {
     return { sharp };
   }
 
-  const jimp = (_jimp as { default: (input: any) => any })?.default || _jimp;
+  const jimp = (_jimp?.default ?? _jimp) as unknown as { read: Function, MIME_JPEG: string, RESIZE_BILINEAR: number };
   if (jimp) {
     return { jimp };
   }
@@ -136,8 +136,9 @@ export const extractImageThumb = async (
         height: dimensions.height,
       },
     };
-  } else if ("jimp" in lib && typeof lib.jimp?.read === "function") {
-    const { read, MIME_JPEG, RESIZE_BILINEAR, AUTO } = lib.jimp;
+  } else if ("jimp" in lib && typeof lib.jimp === "object" && "default" in lib.jimp) {
+    const { default: jimpDefault } = lib.jimp as { default: { read: Function, MIME_JPEG: string, RESIZE_BILINEAR: number } };
+    const { read, MIME_JPEG, RESIZE_BILINEAR } = jimpDefault;
 
     const jimp = await read(bufferOrFilePath as any);
     const dimensions = {
