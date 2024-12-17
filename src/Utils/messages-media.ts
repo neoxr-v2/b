@@ -50,12 +50,20 @@ const getTmpFilesDirectory = () => tmpdir();
 const getImageProcessingLibrary = async () => {
   const [_jimp, sharp] = await Promise.all([
     (async () => {
-      const jimp = await import("jimp").catch(() => {});
-      return jimp;
+      try {
+        const jimp = await import("jimp");
+        return jimp;
+      } catch (error) {
+        return undefined;
+      }
     })(),
     (async () => {
-      const sharp = await import("sharp").catch(() => {});
-      return sharp;
+      try {
+        const sharp = await import("sharp");
+        return sharp;
+      } catch (error) {
+        return undefined;
+      }
     })(),
   ]);
 
@@ -63,20 +71,21 @@ const getImageProcessingLibrary = async () => {
     return { sharp };
   }
 
-  const jimp = (_jimp && _jimp.default ? _jimp.default : _jimp) as { 
-    read: Function; 
-    MIME_JPEG: string; 
-    RESIZE_BILINEAR: string; // Adjusted to string since Jimp defines it as such
-  };
-  
-  // Usage of Jimp constants and methods
-  const { read, MIME_JPEG, RESIZE_BILINEAR } = jimp;
-  if (jimp) {
+  if (_jimp) {
+    // If jimp is available, handle the default export properly
+    const jimp = (_jimp.default ? _jimp.default : _jimp) as { 
+      read: Function; 
+      MIME_JPEG: string; 
+      RESIZE_BILINEAR: string; // Keep RESIZE_BILINEAR as string as defined by Jimp
+    };
+
+    const { read, MIME_JPEG, RESIZE_BILINEAR } = jimp;
     return { jimp };
   }
 
   throw new Boom("No image processing library available");
 };
+
 
 export const hkdfInfoKey = (type: MediaType) => {
   const hkdfInfo = MEDIA_HKDF_KEY_MAPPING[type];
